@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tone Picker Text Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                }
+            },
+            fontFamily: {
+                sans: ["Inter", "system-ui", "sans-serif"],
+            }
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(221.2 83.2% 53.3%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222.2 84% 4.9%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(210 40% 96%);
+            --accent-foreground: hsl(222.2 84% 4.9%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(221.2 83.2% 53.3%);
+            --radius: 0.5rem;
+        }
+
+        .tone-matrix-button {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .tone-matrix-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .error-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+
+<body class="bg-background font-sans antialiased">
+    <!-- @COMPONENT: App [Main application container] -->
+    <div class="min-h-screen bg-background">
+        <!-- Header -->
+        <!-- @COMPONENT: Header [Application header with title and status] -->
+        <header class="bg-card border-b border-border shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-palette text-primary-foreground text-sm"></i>
+                        </div>
+                        <h1 class="text-xl font-semibold text-foreground">Tone Picker</h1>
+                        <span class="text-sm text-muted-foreground">Text Tone Adjustment Tool</span>
+                    </div>
+                    
+                    <!-- Status Indicators -->
+                    <div class="flex items-center space-x-4">
+                        <!-- @STATE: connectionStatus:string = "connected" -->
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span class="text-sm text-muted-foreground">API Connected</span>
+                        </div>
+                        
+                        <!-- Word Count -->
+                        <!-- @STATE: wordCount:number = 0 -->
+                        <div class="text-sm text-muted-foreground">
+                            <span data-bind="wordCount">156</span> words
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                
+                <!-- Text Editor Section -->
+                <!-- @COMPONENT: TextEditor [Main text editing interface] -->
+                <div class="lg:col-span-3">
+                    <div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+                        <!-- Editor Header -->
+                        <div class="bg-muted/30 border-b border-border px-6 py-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-medium text-foreground">Text Editor</h2>
+                                
+                                <!-- Undo/Redo Controls -->
+                                <div class="flex items-center space-x-2">
+                                    <!-- @STATE: canUndo:boolean = false, canRedo:boolean = false -->
+                                    <button 
+                                        data-event="click:handleUndo"
+                                        data-implementation="Should revert to previous text state"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-muted-foreground bg-background border border-border rounded-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        disabled
+                                    >
+                                        <i class="fas fa-undo-alt mr-2"></i>
+                                        Undo
+                                    </button>
+                                    <button 
+                                        data-event="click:handleRedo"
+                                        data-implementation="Should restore next text state"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-muted-foreground bg-background border border-border rounded-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        disabled
+                                    >
+                                        <i class="fas fa-redo-alt mr-2"></i>
+                                        Redo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Text Area -->
+                        <div class="p-6">
+                            <!-- @STATE: text:string = "", isEditing:boolean = false -->
+                            <textarea
+                                data-bind="text"
+                                data-event="input:handleTextChange"
+                                data-implementation="Should update text state and trigger word count calculation"
+                                class="w-full h-96 p-4 text-foreground bg-background border border-input rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground"
+                                placeholder="Start typing or paste your text here..."
+                                data-mock="true"
+                            >In the ever-evolving landscape of modern technology, artificial intelligence has emerged as a transformative force that continues to reshape industries and redefine how we interact with digital systems. From machine learning algorithms that power recommendation engines to natural language processing models that enable seamless human-computer interaction, AI represents a paradigm shift in computational capabilities.
+
+The integration of AI into everyday applications has democratized access to sophisticated tools that were once exclusive to research institutions and large corporations. Today, businesses of all sizes leverage AI-powered solutions to optimize operations, enhance customer experiences, and drive innovation across diverse sectors including healthcare, finance, education, and entertainment.</textarea>
+                        </div>
+
+                        <!-- Editor Footer -->
+                        <div class="bg-muted/30 border-t border-border px-6 py-3">
+                            <div class="flex items-center justify-between text-sm text-muted-foreground">
+                                <div class="flex items-center space-x-4">
+                                    <span>Characters: <span data-bind="characterCount" class="font-medium">1,234</span></span>
+                                    <span>Lines: <span data-bind="lineCount" class="font-medium">12</span></span>
+                                </div>
+                                <!-- @STATE: lastSaved:Date = null -->
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-check-circle text-green-500"></i>
+                                    <span>Auto-saved</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: TextEditor -->
+
+                <!-- Tone Controls Section -->
+                <!-- @COMPONENT: ToneControls [Tone picker interface and controls] -->
+                <div class="lg:col-span-2">
+                    <div class="space-y-6">
+                        
+                        <!-- Tone Picker Card -->
+                        <div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+                            <div class="bg-muted/30 border-b border-border px-6 py-4">
+                                <h2 class="text-lg font-medium text-foreground">Tone Adjustment</h2>
+                                <p class="text-sm text-muted-foreground mt-1">Adjust the tone of your text using the matrix below</p>
+                            </div>
+
+                            <div class="p-6">
+                                <!-- Tone Matrix (2x2) -->
+                                <!-- @COMPONENT: ToneMatrix [2x2 matrix for tone selection] -->
+                                <div class="grid grid-cols-2 gap-3 mb-6">
+                                    <!-- @STATE: selectedTone:string = null, isProcessing:boolean = false -->
+                                    
+                                    <!-- Formal Professional -->
+                                    <button 
+                                        data-event="click:handleToneChange"
+                                        data-tone="formal-professional"
+                                        data-implementation="Should call Mistral AI API with formal professional prompt"
+                                        class="tone-matrix-button group relative bg-background border-2 border-border rounded-lg p-4 text-left hover:border-primary hover:bg-primary/5 focus:outline-none focus:border-primary focus:bg-primary/5 transition-all"
+                                    >
+                                        <div class="flex items-center justify-between mb-2">
+                                            <i class="fas fa-briefcase text-blue-600 text-lg"></i>
+                                            <div class="w-3 h-3 border-2 border-border rounded-full group-hover:border-primary group-focus:border-primary"></div>
+                                        </div>
+                                        <h3 class="font-medium text-foreground">Formal</h3>
+                                        <p class="text-sm text-muted-foreground">Professional & polished</p>
+                                    </button>
+
+                                    <!-- Casual Friendly -->
+                                    <button 
+                                        data-event="click:handleToneChange"
+                                        data-tone="casual-friendly"
+                                        data-implementation="Should call Mistral AI API with casual friendly prompt"
+                                        class="tone-matrix-button group relative bg-background border-2 border-border rounded-lg p-4 text-left hover:border-primary hover:bg-primary/5 focus:outline-none focus:border-primary focus:bg-primary/5 transition-all"
+                                    >
+                                        <div class="flex items-center justify-between mb-2">
+                                            <i class="fas fa-smile text-green-600 text-lg"></i>
+                                            <div class="w-3 h-3 border-2 border-border rounded-full group-hover:border-primary group-focus:border-primary"></div>
+                                        </div>
+                                        <h3 class="font-medium text-foreground">Casual</h3>
+                                        <p class="text-sm text-muted-foreground">Friendly & approachable</p>
+                                    </button>
+
+                                    <!-- Technical Precise -->
+                                    <button 
+                                        data-event="click:handleToneChange"
+                                        data-tone="technical-precise"
+                                        data-implementation="Should call Mistral AI API with technical precise prompt"
+                                        class="tone-matrix-button group relative bg-background border-2 border-border rounded-lg p-4 text-left hover:border-primary hover:bg-primary/5 focus:outline-none focus:border-primary focus:bg-primary/5 transition-all"
+                                    >
+                                        <div class="flex items-center justify-between mb-2">
+                                            <i class="fas fa-cogs text-purple-600 text-lg"></i>
+                                            <div class="w-3 h-3 border-2 border-border rounded-full group-hover:border-primary group-focus:border-primary"></div>
+                                        </div>
+                                        <h3 class="font-medium text-foreground">Technical</h3>
+                                        <p class="text-sm text-muted-foreground">Precise & detailed</p>
+                                    </button>
+
+                                    <!-- Creative Engaging -->
+                                    <button 
+                                        data-event="click:handleToneChange"
+                                        data-tone="creative-engaging"
+                                        data-implementation="Should call Mistral AI API with creative engaging prompt"
+                                        class="tone-matrix-button group relative bg-background border-2 border-border rounded-lg p-4 text-left hover:border-primary hover:bg-primary/5 focus:outline-none focus:border-primary focus:bg-primary/5 transition-all"
+                                    >
+                                        <div class="flex items-center justify-between mb-2">
+                                            <i class="fas fa-lightbulb text-orange-600 text-lg"></i>
+                                            <div class="w-3 h-3 border-2 border-border rounded-full group-hover:border-primary group-focus:border-primary"></div>
+                                        </div>
+                                        <h3 class="font-medium text-foreground">Creative</h3>
+                                        <p class="text-sm text-muted-foreground">Engaging & vivid</p>
+                                    </button>
+                                </div>
+                                <!-- @END_COMPONENT: ToneMatrix -->
+
+                                <!-- Reset Button -->
+                                <button 
+                                    data-event="click:handleReset"
+                                    data-implementation="Should restore original text state"
+                                    class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-muted-foreground bg-background border border-border rounded-md hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+                                >
+                                    <i class="fas fa-undo mr-2"></i>
+                                    Reset to Original
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Processing Status Card -->
+                        <!-- @COMPONENT: StatusCard [Shows processing status and history] -->
+                        <div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+                            <div class="bg-muted/30 border-b border-border px-6 py-4">
+                                <h3 class="text-lg font-medium text-foreground">Processing Status</h3>
+                            </div>
+
+                            <div class="p-6">
+                                <!-- Loading State (hidden by default) -->
+                                <!-- @STATE: isProcessing:boolean = false -->
+                                <div class="hidden fade-in" data-loading-state="true">
+                                    <div class="flex items-center space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <div class="loading-spinner w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                                        <div>
+                                            <p class="text-sm font-medium text-blue-900">Processing tone change...</p>
+                                            <p class="text-xs text-blue-700">This may take a few seconds</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Success State -->
+                                <!-- @STATE: lastProcessedTone:string = null -->
+                                <div class="fade-in">
+                                    <div class="flex items-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                        <i class="fas fa-check-circle text-green-600"></i>
+                                        <div>
+                                            <p class="text-sm font-medium text-green-900">Tone adjusted successfully</p>
+                                            <p class="text-xs text-green-700">Applied: <span data-bind="lastProcessedTone">Formal Professional</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Error State (hidden by default) -->
+                                <div class="hidden error-shake" data-error-state="true">
+                                    <div class="flex items-start space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                        <div>
+                                            <p class="text-sm font-medium text-red-900">Failed to process tone change</p>
+                                            <p class="text-xs text-red-700">Please check your connection and try again</p>
+                                            <button class="mt-2 text-xs text-red-700 underline hover:text-red-800">
+                                                Retry
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- History Preview -->
+                                <div class="mt-4 pt-4 border-t border-border">
+                                    <h4 class="text-sm font-medium text-foreground mb-3">Recent Changes</h4>
+                                    <!-- @STATE: history:Array = [] -->
+                                    <!-- @MAP: history.slice(0, 3).map(item => ( -->
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span class="flex items-center space-x-2">
+                                                <i class="fas fa-clock"></i>
+                                                <span>2 minutes ago</span>
+                                            </span>
+                                            <span class="font-medium">Formal → Creative</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span class="flex items-center space-x-2">
+                                                <i class="fas fa-clock"></i>
+                                                <span>5 minutes ago</span>
+                                            </span>
+                                            <span class="font-medium">Original → Formal</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span class="flex items-center space-x-2">
+                                                <i class="fas fa-clock"></i>
+                                                <span>8 minutes ago</span>
+                                            </span>
+                                            <span class="font-medium">Casual → Technical</span>
+                                        </div>
+                                    </div>
+                                    <!-- @END_MAP )) -->
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_COMPONENT: StatusCard -->
+
+                        <!-- API Info Card -->
+                        <div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+                            <div class="p-6">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-robot text-blue-600 text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-medium text-foreground">Mistral AI</h3>
+                                        <p class="text-xs text-muted-foreground">Small Model</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-2 text-xs text-muted-foreground">
+                                    <div class="flex justify-between">
+                                        <span>Requests today:</span>
+                                        <span class="font-medium">47/1000</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Avg response time:</span>
+                                        <span class="font-medium">1.2s</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Cache hit rate:</span>
+                                        <span class="font-medium">23%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: ToneControls -->
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-card border-t border-border mt-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <span>© 2024 Tone Picker</span>
+                        <span>•</span>
+                        <span>Powered by Mistral AI</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-question-circle mr-1"></i>
+                            Help
+                        </button>
+                        <button class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-cog mr-1"></i>
+                            Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <!-- @END_COMPONENT: App -->
+
+    <script>
+        // TODO: Implement React state management for undo/redo functionality
+        // TODO: Integrate with Mistral AI API for tone adjustment
+        // TODO: Implement local storage persistence for text and history
+        // TODO: Add proper error handling and retry logic
+        // TODO: Implement caching mechanism for API responses
+        
+        (function() {
+            // Mock interaction handlers for demonstration
+            // In production, these would be React event handlers
+            
+            // Simulate loading state toggle
+            const buttons = document.querySelectorAll('.tone-matrix-button');
+            const loadingState = document.querySelector('[data-loading-state]');
+            const errorState = document.querySelector('[data-error-state]');
+            
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Simulate API call loading state
+                    loadingState?.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        loadingState?.classList.add('hidden');
+                        // Randomly show success or error for demo
+                        if (Math.random() > 0.8) {
+                            errorState?.classList.remove('hidden');
+                            setTimeout(() => errorState?.classList.add('hidden'), 3000);
+                        }
+                    }, 2000);
+                });
+            });
+
+            // Simulate word count update
+            const textarea = document.querySelector('textarea');
+            const wordCountEl = document.querySelector('[data-bind="wordCount"]');
+            const charCountEl = document.querySelector('[data-bind="characterCount"]');
+            
+            if (textarea && wordCountEl && charCountEl) {
+                function updateCounts() {
+                    const text = textarea.value;
+                    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                    const chars = text.length;
+                    
+                    wordCountEl.textContent = words;
+                    charCountEl.textContent = chars.toLocaleString();
+                }
+                
+                textarea.addEventListener('input', updateCounts);
+                updateCounts(); // Initial count
+            }
+        })();
+    </script>
+</body>
+</html>
