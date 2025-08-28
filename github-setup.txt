@@ -1,0 +1,58 @@
+# GitHub Setup Commands for Tone Picker Project
+
+## Step 1: Initialize Git Repository (if not already done)
+git init
+
+## Step 2: Add all files to staging
+git add .
+
+## Step 3: Create initial commit
+git commit -m "Initial commit: Tone Picker application with React, Express, and Mistral AI integration"
+
+## Step 4: Create a new repository on GitHub
+# Go to https://github.com/new
+# Repository name: tone-picker
+# Description: AI-powered text tone adjustment tool with 2x2 matrix interface
+# Make it public (for the take-home test)
+# Don't initialize with README (we already have one)
+
+## Step 5: Add GitHub remote origin
+git remote add origin https://github.com/YOUR_USERNAME/tone-picker.git
+
+## Step 6: Push to GitHub
+git branch -M main
+git push -u origin main
+
+## Alternative: If you prefer SSH (after setting up SSH keys)
+# git remote add origin git@github.com:YOUR_USERNAME/tone-picker.git
+# git push -u origin main
+
+## Step 7: Verify upload
+# Visit https://github.com/YOUR_USERNAME/tone-picker
+# Check that all files are uploaded including:
+# - README.md
+# - All source code
+# - package.json
+# - .env file should NOT be uploaded (it's in .gitignore)
+
+## Additional Commands (if needed):
+
+# To check current status
+git status
+
+# To check remote URL
+git remote -v
+
+# To add more commits later
+git add .
+git commit -m "Your commit message"
+git push
+
+# To create a new branch for features
+git checkout -b feature/new-feature
+git push -u origin feature/new-feature
+
+## Notes:
+# - Replace YOUR_USERNAME with your actual GitHub username
+# - The .env file with your API key will NOT be pushed (it's in .gitignore for security)
+# - Make sure to update the clone URL in README.md after creating the repository
