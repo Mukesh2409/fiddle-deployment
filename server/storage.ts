@@ -26,6 +26,7 @@ export class MemStorage implements IStorage {
       ...insertEntry,
       id,
       timestamp: new Date(),
+      metadata: insertEntry.metadata || null,
     };
     this.textHistory.set(id, entry);
     return entry;

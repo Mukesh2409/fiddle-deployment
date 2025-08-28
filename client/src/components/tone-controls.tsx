@@ -1,5 +1,5 @@
-import { ToneMatrix } from "./tone-matrix";
-import { StatusCard } from "./status-card";
+import { ToneMatrix } from "@/components/tone-matrix";
+import { StatusCard } from "@/components/status-card";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 
