@@ -1,13 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { toneAdjustmentRequestSchema } from "../shared/schema";
 import { randomUUID } from "crypto";
+import { z } from "zod";
+
+// Define the schema inline for Vercel compatibility
+const toneAdjustmentRequestSchema = z.object({
+  text: z.string().min(1, "Text is required"),
+  toneType: z.enum(["formal-professional", "casual-friendly", "technical-precise", "creative-engaging"]),
+  sessionId: z.string().optional(),
+});
 
 // Simple cache for API responses
 const responseCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 async function callMistralAPI(text: string, toneType: string): Promise<string> {
-  const apiKey = process.env.MISTRAL_API_KEY || process.env.VITE_MISTRAL_API_KEY || "default_key";
+  const apiKey = process.env.MISTRAL_API_KEY || process.env.VITE_MISTRAL_API_KEY;
+  
+  if (!apiKey || apiKey === "default_key") {
+    throw new Error("MISTRAL_API_KEY environment variable is not set");
+  }
   
   const tonePrompts = {
     "formal-professional": "Rewrite this text in a formal, professional tone suitable for business communications:",
@@ -69,6 +80,14 @@ async function callMistralAPI(text: string, toneType: string): Promise<string> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(200).end();
+  }
+
   // Only allow POST method
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -80,6 +99,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   try {
+    // Log the request for debugging
+    console.log('Request body:', req.body);
+    console.log('Environment check - MISTRAL_API_KEY exists:', !!process.env.MISTRAL_API_KEY);
+
     const validatedData = toneAdjustmentRequestSchema.parse(req.body);
     const { text, toneType, sessionId = randomUUID() } = validatedData;
 
@@ -100,8 +123,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error('Tone adjustment error:', error);
     if (error instanceof Error) {
-      res.status(400).json({ 
-        message: error.message.includes('Zod') ? 'Invalid request data' : error.message 
+      const isValidationError = error.message.includes('ZodError') || error.message.includes('validation');
+      res.status(isValidationError ? 400 : 500).json({ 
+        message: isValidationError ? 'Invalid request data' : error.message,
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     } else {
       res.status(500).json({ message: 'Internal server error' });
